@@ -322,6 +322,27 @@
       margin-top: 0.3rem;
     }
 
+    .cal-link {
+      display: block;
+      padding: 0.65rem 1rem;
+      margin-bottom: 0.5rem;
+      background: var(--primary-light);
+      border-radius: 10px;
+      color: var(--primary-dark);
+      text-decoration: none;
+      font-weight: 500;
+      font-size: 0.9rem;
+      transition: background 0.2s;
+    }
+
+    .cal-link:hover { background: #DDD9FF; }
+
+    .cal-link .cal-link-sub {
+      font-size: 0.8rem;
+      color: var(--text-light);
+      font-weight: 400;
+    }
+
     footer {
       text-align: center;
       padding: 2rem 1rem;
@@ -401,11 +422,18 @@
     <h2>✨ התאריכים הלועזיים</h2>
     <div id="resultsList"></div>
     <div class="add-all-section" id="addAllSection">
-      <button class="btn btn-google" onclick="addAllToCalendar()">
-        <img src="https://www.gstatic.com/images/branding/product/1x/calendar_2020q4_48dp.png" alt="Google Calendar">
-        הורד קובץ לכל האירועים (ICS)
+      <button class="btn btn-primary" onclick="toggleAllLinks()" id="showAllBtn">
+        📅 הוסף את כולם ל-Google Calendar
       </button>
-      <p class="info-text" style="margin-top:0.6rem; text-align:center;">הורד את הקובץ ואז <a href="https://calendar.google.com/calendar/r/settings/export" target="_blank">ייבא ל-Google Calendar</a></p>
+      <div id="allLinksContainer" style="display:none; margin-top:0.8rem;">
+        <p class="info-text" style="margin-bottom:0.6rem;">לחצו על כל לינק להוספה (אחד אחד):</p>
+        <div id="allLinksList"></div>
+      </div>
+      <div style="margin-top:0.8rem; text-align:center;">
+        <button class="btn btn-google" onclick="addAllToCalendar()" style="font-size:0.9rem;">
+          💾 או הורד קובץ ICS לייבוא ידני
+        </button>
+      </div>
     </div>
   </div>
 
@@ -603,6 +631,30 @@
     const url = buildCalendarUrl(convertedDates[index], name);
     window.open(url, '_blank');
     showToast();
+  }
+
+  function toggleAllLinks() {
+    const container = document.getElementById('allLinksContainer');
+    const list = document.getElementById('allLinksList');
+    const name = document.getElementById('friendName').value.trim();
+
+    if (container.style.display === 'none') {
+      list.innerHTML = '';
+      convertedDates.forEach((d, i) => {
+        const url = buildCalendarUrl(d, name);
+        const a = document.createElement('a');
+        a.href = url;
+        a.target = '_blank';
+        a.className = 'cal-link';
+        a.innerHTML = `🎂 ${d.hebrewDate} <span class="cal-link-sub">- ${d.displayDate}</span>`;
+        a.addEventListener('click', () => showToast());
+        list.appendChild(a);
+      });
+      container.style.display = 'block';
+      container.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    } else {
+      container.style.display = 'none';
+    }
   }
 
   function addAllToCalendar() {
