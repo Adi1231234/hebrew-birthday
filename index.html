@@ -6,6 +6,8 @@
   <title>Moedli - מועדלי | תזכורות לתאריכים עבריים</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Heebo:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <script src="https://accounts.google.com/gsi/client" async defer></script>
+  <script src="https://apis.google.com/js/api.js" async defer></script>
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
 
@@ -343,6 +345,35 @@
       font-weight: 400;
     }
 
+    .progress-bar {
+      width: 100%;
+      height: 6px;
+      background: var(--border);
+      border-radius: 3px;
+      margin: 0.8rem 0;
+      overflow: hidden;
+      display: none;
+    }
+
+    .progress-bar.show { display: block; }
+
+    .progress-bar-fill {
+      height: 100%;
+      background: var(--primary);
+      border-radius: 3px;
+      transition: width 0.3s;
+      width: 0%;
+    }
+
+    .progress-text {
+      font-size: 0.85rem;
+      color: var(--text-light);
+      text-align: center;
+      display: none;
+    }
+
+    .progress-text.show { display: block; }
+
     footer {
       text-align: center;
       padding: 2rem 1rem;
@@ -370,6 +401,15 @@
 
   <div class="card">
     <h2>📅 בחרו תאריך עברי</h2>
+
+    <div class="form-group">
+      <label for="eventType">סוג האירוע</label>
+      <select id="eventType">
+        <option value="birthday">🎂 יום הולדת</option>
+        <option value="memorial">🕯️ אזכרה</option>
+        <option value="other">📌 אחר</option>
+      </select>
+    </div>
 
     <div class="form-group">
       <label for="friendName">שם (לתזכורת)</label>
@@ -422,13 +462,13 @@
     <h2>✨ התאריכים הלועזיים</h2>
     <div id="resultsList"></div>
     <div class="add-all-section" id="addAllSection">
-      <button class="btn btn-primary" onclick="toggleAllLinks()" id="showAllBtn">
+      <button class="btn btn-primary" onclick="addAllViaAPI()" id="addAllBtn">
         📅 הוסף את כולם ל-Google Calendar
       </button>
-      <div id="allLinksContainer" style="display:none; margin-top:0.8rem;">
-        <p class="info-text" style="margin-bottom:0.6rem;">לחצו על כל לינק להוספה (אחד אחד):</p>
-        <div id="allLinksList"></div>
+      <div class="progress-bar" id="progressBar">
+        <div class="progress-bar-fill" id="progressFill"></div>
       </div>
+      <p class="progress-text" id="progressText"></p>
       <div style="margin-top:0.8rem; text-align:center;">
         <button class="btn btn-google" onclick="addAllToCalendar()" style="font-size:0.9rem;">
           💾 או הורד קובץ ICS לייבוא ידני
@@ -437,13 +477,150 @@
     </div>
   </div>
 
-  <div class="success-toast" id="toast">✅ נפתח ב-Google Calendar!</div>
+  <div class="success-toast" id="toast"></div>
 
   <footer>
     <p>Moedli - מועדלי | המרת תאריכים באמצעות <a href="https://www.hebcal.com" target="_blank">Hebcal API</a></p>
   </footer>
 
 <script>
+  // === CONFIG ===
+  const CLIENT_ID = 'PLACEHOLDER_CLIENT_ID'; // Will be replaced with real OAuth Client ID
+  const SCOPES = 'https://www.googleapis.com/auth/calendar.events';
+
+  const EVENT_EMOJIS = { birthday: '🎂', memorial: '🕯️', other: '📌' };
+  const EVENT_LABELS = { birthday: 'יום הולדת', memorial: 'אזכרה', other: 'תאריך' };
+
+  // === GOOGLE AUTH ===
+  let tokenClient;
+  let accessToken = null;
+
+  function initGoogleAuth() {
+    tokenClient = google.accounts.oauth2.initTokenClient({
+      client_id: CLIENT_ID,
+      scope: SCOPES,
+      callback: (response) => {
+        if (response.error) {
+          showError('שגיאה בהתחברות לגוגל');
+          return;
+        }
+        accessToken = response.access_token;
+        // If we were waiting to add all, do it now
+        if (pendingAddAll) {
+          pendingAddAll = false;
+          doAddAllViaAPI();
+        }
+      },
+    });
+  }
+
+  // Wait for GIS library to load
+  window.addEventListener('load', () => {
+    // GIS loads async, wait for it
+    const checkGIS = setInterval(() => {
+      if (typeof google !== 'undefined' && google.accounts) {
+        clearInterval(checkGIS);
+        initGoogleAuth();
+      }
+    }, 100);
+  });
+
+  let pendingAddAll = false;
+
+  async function addAllViaAPI() {
+    if (!accessToken) {
+      // Request token first
+      pendingAddAll = true;
+      tokenClient.requestAccessToken();
+      return;
+    }
+    doAddAllViaAPI();
+  }
+
+  async function doAddAllViaAPI() {
+    const name = document.getElementById('friendName').value.trim();
+    const eventType = document.getElementById('eventType').value;
+    const emoji = EVENT_EMOJIS[eventType];
+    const label = EVENT_LABELS[eventType];
+    const btn = document.getElementById('addAllBtn');
+    const progressBar = document.getElementById('progressBar');
+    const progressFill = document.getElementById('progressFill');
+    const progressText = document.getElementById('progressText');
+
+    btn.disabled = true;
+    progressBar.classList.add('show');
+    progressText.classList.add('show');
+    progressFill.style.width = '0%';
+
+    let success = 0;
+    let failed = 0;
+
+    for (let i = 0; i < convertedDates.length; i++) {
+      const d = convertedDates[i];
+      const progress = Math.round(((i + 1) / convertedDates.length) * 100);
+      progressFill.style.width = progress + '%';
+      progressText.textContent = `מוסיף ${i + 1} מתוך ${convertedDates.length}...`;
+
+      const event = {
+        summary: `${emoji} ${label} ${name} (${d.hebrewDate})`,
+        description: `${label} עברי: ${d.hebrewDate}\nתאריך לועזי: ${d.displayDate}\n\nנוצר ע"י מועדלי - Moedli`,
+        start: { date: d.gregorianDate },
+        end: {
+          date: (() => {
+            const next = new Date(d.gy, d.gm - 1, d.gd + 1);
+            return `${next.getFullYear()}-${String(next.getMonth()+1).padStart(2,'0')}-${String(next.getDate()).padStart(2,'0')}`;
+          })()
+        },
+        reminders: {
+          useDefault: false,
+          overrides: [
+            { method: 'popup', minutes: 1440 },
+            { method: 'popup', minutes: 540 },
+          ]
+        },
+        transparency: 'transparent',
+      };
+
+      try {
+        const res = await fetch('https://www.googleapis.com/calendar/v3/calendars/primary/events', {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${accessToken}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(event),
+        });
+
+        if (res.status === 401) {
+          // Token expired, re-auth
+          accessToken = null;
+          pendingAddAll = true;
+          tokenClient.requestAccessToken();
+          btn.disabled = false;
+          progressBar.classList.remove('show');
+          progressText.classList.remove('show');
+          return;
+        }
+
+        if (!res.ok) throw new Error('API error');
+        success++;
+      } catch (err) {
+        failed++;
+      }
+    }
+
+    btn.disabled = false;
+    progressBar.classList.remove('show');
+    progressText.classList.remove('show');
+
+    if (failed === 0) {
+      showToast(`✅ נוספו ${success} אירועים ל-Google Calendar!`);
+    } else {
+      showToast(`⚠️ נוספו ${success} אירועים, ${failed} נכשלו`);
+    }
+  }
+
+  // === HEBREW MONTHS ===
   const HEBREW_MONTHS = [
     { name: 'Nisan', he: 'ניסן' },
     { name: 'Iyyar', he: 'אייר' },
@@ -466,7 +643,6 @@
   const recurringCheckbox = document.getElementById('recurring');
   const yearsConfig = document.getElementById('yearsConfig');
 
-  // Populate days 1-30
   for (let i = 1; i <= 30; i++) {
     const opt = document.createElement('option');
     opt.value = i;
@@ -474,7 +650,6 @@
     daySelect.appendChild(opt);
   }
 
-  // Populate months
   HEBREW_MONTHS.forEach(m => {
     const opt = document.createElement('option');
     opt.value = m.name;
@@ -486,7 +661,6 @@
     yearsConfig.classList.toggle('show', recurringCheckbox.checked);
   });
 
-  // Simple Hebrew numerals
   function gematriya(num) {
     const ones = ['', 'א', 'ב', 'ג', 'ד', 'ה', 'ו', 'ז', 'ח', 'ט'];
     const tens = ['', 'י', 'כ', 'ל'];
@@ -500,11 +674,9 @@
   }
 
   function getCurrentHebrewYear() {
-    // Approximate: Gregorian year + 3760 (adjust around Tishrei)
     const now = new Date();
     const gYear = now.getFullYear();
-    const month = now.getMonth(); // 0-based
-    // Hebrew new year is around September
+    const month = now.getMonth();
     return gYear + 3760 + (month >= 8 ? 1 : 0);
   }
 
@@ -603,13 +775,15 @@
   }
 
   function buildCalendarUrl(date, name) {
-    const title = `🎂 יום הולדת ${name} (${date.hebrewDate})`;
+    const eventType = document.getElementById('eventType').value;
+    const emoji = EVENT_EMOJIS[eventType];
+    const label = EVENT_LABELS[eventType];
+    const title = `${emoji} ${label} ${name} (${date.hebrewDate})`;
     const dateStr = `${date.gy}${String(date.gm).padStart(2,'0')}${String(date.gd).padStart(2,'0')}`;
-    // Next day for all-day event
     const nextDay = new Date(date.gy, date.gm - 1, date.gd + 1);
     const endStr = `${nextDay.getFullYear()}${String(nextDay.getMonth()+1).padStart(2,'0')}${String(nextDay.getDate()).padStart(2,'0')}`;
 
-    const details = `יום הולדת עברי: ${date.hebrewDate}\nתאריך לועזי: ${date.displayDate}`;
+    const details = `${label} עברי: ${date.hebrewDate}\nתאריך לועזי: ${date.displayDate}`;
 
     const params = new URLSearchParams({
       action: 'TEMPLATE',
@@ -618,11 +792,6 @@
       details: details,
     });
 
-    // Add reminder (1 day before + morning of)
-    // crm = custom reminders: popup 1440 min (1 day) + 540 min (9am)
-    // Unfortunately Google Calendar URL doesn't support reminders directly
-    // But we set it as all-day event which uses default reminders
-
     return `https://calendar.google.com/calendar/render?${params.toString()}`;
   }
 
@@ -630,55 +799,34 @@
     const name = document.getElementById('friendName').value.trim();
     const url = buildCalendarUrl(convertedDates[index], name);
     window.open(url, '_blank');
-    showToast();
-  }
-
-  function toggleAllLinks() {
-    const container = document.getElementById('allLinksContainer');
-    const list = document.getElementById('allLinksList');
-    const name = document.getElementById('friendName').value.trim();
-
-    if (container.style.display === 'none') {
-      list.innerHTML = '';
-      convertedDates.forEach((d, i) => {
-        const url = buildCalendarUrl(d, name);
-        const a = document.createElement('a');
-        a.href = url;
-        a.target = '_blank';
-        a.className = 'cal-link';
-        a.innerHTML = `🎂 ${d.hebrewDate} <span class="cal-link-sub">- ${d.displayDate}</span>`;
-        a.addEventListener('click', () => showToast());
-        list.appendChild(a);
-      });
-      container.style.display = 'block';
-      container.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-    } else {
-      container.style.display = 'none';
-    }
+    showToast('✅ נפתח ב-Google Calendar!');
   }
 
   function addAllToCalendar() {
     const name = document.getElementById('friendName').value.trim();
-    const icsContent = generateICS(name, convertedDates);
+    const eventType = document.getElementById('eventType').value;
+    const emoji = EVENT_EMOJIS[eventType];
+    const label = EVENT_LABELS[eventType];
+    const icsContent = generateICS(name, convertedDates, emoji, label);
     const blob = new Blob([icsContent], { type: 'text/calendar;charset=utf-8' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `birthday-${name}.ics`;
+    a.download = `moedli-${name}.ics`;
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
     URL.revokeObjectURL(url);
-    showToast();
+    showToast('✅ הקובץ הורד!');
   }
 
-  function generateICS(name, dates) {
+  function generateICS(name, dates, emoji, label) {
     const now = new Date();
     const stamp = now.toISOString().replace(/[-:]/g, '').replace(/\.\d{3}/, '');
     let ics = [
       'BEGIN:VCALENDAR',
       'VERSION:2.0',
-      'PRODID:-//Hebrew Birthday Reminder//HE',
+      'PRODID:-//Moedli//HE',
       'CALSCALE:GREGORIAN',
       'METHOD:PUBLISH',
     ];
@@ -688,21 +836,21 @@
       const endStr = `${nextDay.getFullYear()}${String(nextDay.getMonth()+1).padStart(2,'0')}${String(nextDay.getDate()).padStart(2,'0')}`;
       ics.push(
         'BEGIN:VEVENT',
-        `UID:hebrew-bday-${name}-${d.hebrewYear}-${i}@hebrew-birthday`,
+        `UID:moedli-${name}-${d.hebrewYear}-${i}@moedli`,
         `DTSTAMP:${stamp}`,
         `DTSTART;VALUE=DATE:${dateStr}`,
         `DTEND;VALUE=DATE:${endStr}`,
-        `SUMMARY:🎂 יום הולדת ${name} (${d.hebrewDate})`,
-        `DESCRIPTION:יום הולדת עברי: ${d.hebrewDate}\\nתאריך לועזי: ${d.displayDate}`,
+        `SUMMARY:${emoji} ${label} ${name} (${d.hebrewDate})`,
+        `DESCRIPTION:${label} עברי: ${d.hebrewDate}\\nתאריך לועזי: ${d.displayDate}\\n\\nנוצר ע"י מועדלי - Moedli`,
         'BEGIN:VALARM',
         'TRIGGER:-P1D',
         'ACTION:DISPLAY',
-        `DESCRIPTION:מחר יום הולדת של ${name}!`,
+        `DESCRIPTION:מחר ${label} של ${name}!`,
         'END:VALARM',
         'BEGIN:VALARM',
         'TRIGGER:PT9H',
         'ACTION:DISPLAY',
-        `DESCRIPTION:היום יום הולדת של ${name}!`,
+        `DESCRIPTION:היום ${label} של ${name}!`,
         'END:VALARM',
         'END:VEVENT'
       );
@@ -718,10 +866,11 @@
     setTimeout(() => el.classList.remove('show'), 4000);
   }
 
-  function showToast() {
+  function showToast(msg) {
     const toast = document.getElementById('toast');
+    toast.textContent = msg;
     toast.classList.add('show');
-    setTimeout(() => toast.classList.remove('show'), 2500);
+    setTimeout(() => toast.classList.remove('show'), 3000);
   }
 </script>
 
