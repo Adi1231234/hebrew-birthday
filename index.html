@@ -512,7 +512,7 @@
       const promises = [];
       for (let i = 0; i < yearsToFetch; i++) {
         const hy = currentHY + i;
-        const url = `https://www.hebcal.com/converter?cfg=json&hy=${hy}&hm=${month}&hd=${day}&g2h=0`;
+        const url = `https://www.hebcal.com/converter?cfg=json&h2g=1&hy=${hy}&hm=${month}&hd=${day}`;
         promises.push(
           fetch(url).then(r => {
             if (!r.ok) throw new Error(`שגיאה בהמרה לשנה ${hy}`);
