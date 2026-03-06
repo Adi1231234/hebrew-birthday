@@ -1,0 +1,634 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>תזכורת יום הולדת עברי</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Heebo:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    :root {
+      --primary: #6C63FF;
+      --primary-dark: #5A52D5;
+      --primary-light: #E8E6FF;
+      --bg: #F5F3FF;
+      --card-bg: #FFFFFF;
+      --text: #2D2B55;
+      --text-light: #6E6B8A;
+      --success: #10B981;
+      --success-bg: #D1FAE5;
+      --border: #E5E7EB;
+      --shadow: 0 4px 24px rgba(108, 99, 255, 0.12);
+      --shadow-hover: 0 8px 32px rgba(108, 99, 255, 0.2);
+    }
+
+    body {
+      font-family: 'Heebo', sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+
+    .hero {
+      text-align: center;
+      padding: 3rem 1.5rem 2rem;
+      max-width: 600px;
+    }
+
+    .hero-emoji { font-size: 3.5rem; margin-bottom: 0.5rem; }
+
+    .hero h1 {
+      font-size: 2rem;
+      font-weight: 700;
+      color: var(--text);
+      margin-bottom: 0.5rem;
+    }
+
+    .hero p {
+      font-size: 1.05rem;
+      color: var(--text-light);
+      line-height: 1.6;
+    }
+
+    .card {
+      background: var(--card-bg);
+      border-radius: 20px;
+      padding: 2rem;
+      width: 90%;
+      max-width: 500px;
+      box-shadow: var(--shadow);
+      margin-bottom: 1.5rem;
+      transition: box-shadow 0.3s;
+    }
+
+    .card:hover { box-shadow: var(--shadow-hover); }
+
+    .card h2 {
+      font-size: 1.2rem;
+      font-weight: 600;
+      margin-bottom: 1.2rem;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .form-group {
+      margin-bottom: 1.2rem;
+    }
+
+    label {
+      display: block;
+      font-size: 0.9rem;
+      font-weight: 500;
+      color: var(--text-light);
+      margin-bottom: 0.4rem;
+    }
+
+    select, input[type="text"], input[type="number"] {
+      width: 100%;
+      padding: 0.75rem 1rem;
+      border: 2px solid var(--border);
+      border-radius: 12px;
+      font-family: 'Heebo', sans-serif;
+      font-size: 1rem;
+      color: var(--text);
+      background: #FAFAFE;
+      transition: border-color 0.2s, box-shadow 0.2s;
+      appearance: none;
+      -webkit-appearance: none;
+    }
+
+    select {
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%236E6B8A' d='M6 8L1 3h10z'/%3E%3C/svg%3E");
+      background-repeat: no-repeat;
+      background-position: left 1rem center;
+      padding-left: 2.5rem;
+    }
+
+    select:focus, input:focus {
+      outline: none;
+      border-color: var(--primary);
+      box-shadow: 0 0 0 3px var(--primary-light);
+    }
+
+    .row {
+      display: flex;
+      gap: 0.8rem;
+    }
+
+    .row .form-group { flex: 1; }
+
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.5rem;
+      width: 100%;
+      padding: 0.85rem 1.5rem;
+      border: none;
+      border-radius: 12px;
+      font-family: 'Heebo', sans-serif;
+      font-size: 1.05rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .btn-primary {
+      background: var(--primary);
+      color: white;
+    }
+
+    .btn-primary:hover {
+      background: var(--primary-dark);
+      transform: translateY(-1px);
+    }
+
+    .btn-primary:active { transform: translateY(0); }
+
+    .btn-primary:disabled {
+      background: #B8B5D4;
+      cursor: not-allowed;
+      transform: none;
+    }
+
+    .btn-google {
+      background: white;
+      color: var(--text);
+      border: 2px solid var(--border);
+      margin-top: 0.6rem;
+    }
+
+    .btn-google:hover {
+      border-color: var(--primary);
+      background: var(--primary-light);
+    }
+
+    .btn-google img {
+      width: 20px;
+      height: 20px;
+    }
+
+    #results {
+      display: none;
+    }
+
+    #results.show { display: block; }
+
+    .result-item {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 0.85rem 1rem;
+      border-radius: 12px;
+      background: var(--primary-light);
+      margin-bottom: 0.6rem;
+      transition: background 0.2s;
+    }
+
+    .result-item:hover { background: #DDD9FF; }
+
+    .result-year {
+      font-weight: 600;
+      font-size: 0.95rem;
+      color: var(--primary-dark);
+    }
+
+    .result-date {
+      font-size: 0.95rem;
+      color: var(--text);
+    }
+
+    .result-actions {
+      display: flex;
+      gap: 0.4rem;
+    }
+
+    .btn-small {
+      padding: 0.4rem 0.8rem;
+      border-radius: 8px;
+      border: none;
+      font-family: 'Heebo', sans-serif;
+      font-size: 0.8rem;
+      font-weight: 500;
+      cursor: pointer;
+      background: var(--primary);
+      color: white;
+      transition: all 0.2s;
+    }
+
+    .btn-small:hover {
+      background: var(--primary-dark);
+    }
+
+    .add-all-section {
+      margin-top: 1rem;
+      padding-top: 1rem;
+      border-top: 2px solid var(--border);
+    }
+
+    .loader {
+      display: none;
+      text-align: center;
+      padding: 2rem;
+    }
+
+    .loader.show { display: block; }
+
+    .spinner {
+      width: 40px;
+      height: 40px;
+      border: 3px solid var(--primary-light);
+      border-top-color: var(--primary);
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+      margin: 0 auto 0.8rem;
+    }
+
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    .error-msg {
+      background: #FEE2E2;
+      color: #DC2626;
+      padding: 0.75rem 1rem;
+      border-radius: 12px;
+      font-size: 0.9rem;
+      display: none;
+    }
+
+    .error-msg.show { display: block; }
+
+    .success-toast {
+      position: fixed;
+      bottom: 2rem;
+      left: 50%;
+      transform: translateX(-50%) translateY(100px);
+      background: var(--success);
+      color: white;
+      padding: 0.8rem 1.5rem;
+      border-radius: 12px;
+      font-weight: 500;
+      box-shadow: 0 4px 16px rgba(16, 185, 129, 0.3);
+      transition: transform 0.3s ease;
+      z-index: 100;
+    }
+
+    .success-toast.show {
+      transform: translateX(-50%) translateY(0);
+    }
+
+    .checkbox-group {
+      display: flex;
+      align-items: center;
+      gap: 0.6rem;
+      margin-bottom: 1rem;
+      cursor: pointer;
+    }
+
+    .checkbox-group input[type="checkbox"] {
+      width: 20px;
+      height: 20px;
+      accent-color: var(--primary);
+      cursor: pointer;
+    }
+
+    .checkbox-group label {
+      margin: 0;
+      cursor: pointer;
+      font-size: 0.95rem;
+      color: var(--text);
+    }
+
+    .years-config {
+      display: none;
+      margin-bottom: 1rem;
+      padding: 1rem;
+      background: var(--primary-light);
+      border-radius: 12px;
+    }
+
+    .years-config.show { display: block; }
+
+    .years-config label { color: var(--text); }
+
+    .info-text {
+      font-size: 0.82rem;
+      color: var(--text-light);
+      margin-top: 0.3rem;
+    }
+
+    footer {
+      text-align: center;
+      padding: 2rem 1rem;
+      color: var(--text-light);
+      font-size: 0.85rem;
+    }
+
+    footer a { color: var(--primary); text-decoration: none; }
+    footer a:hover { text-decoration: underline; }
+
+    @media (max-width: 500px) {
+      .hero h1 { font-size: 1.6rem; }
+      .card { padding: 1.5rem; width: 95%; }
+      .row { flex-direction: column; gap: 0; }
+    }
+  </style>
+</head>
+<body>
+
+  <div class="hero">
+    <div class="hero-emoji">🎂</div>
+    <h1>תזכורת יום הולדת עברי</h1>
+    <p>הכניסו תאריך עברי, קבלו את התאריך הלועזי התואם, והוסיפו תזכורת ל-Google Calendar - גם חד פעמי וגם לשנים הבאות!</p>
+  </div>
+
+  <div class="card">
+    <h2>📅 בחרו תאריך עברי</h2>
+
+    <div class="form-group">
+      <label for="friendName">שם החבר/ה</label>
+      <input type="text" id="friendName" placeholder="למשל: יוסי">
+    </div>
+
+    <div class="row">
+      <div class="form-group">
+        <label for="hebrewDay">יום</label>
+        <select id="hebrewDay"></select>
+      </div>
+      <div class="form-group">
+        <label for="hebrewMonth">חודש</label>
+        <select id="hebrewMonth"></select>
+      </div>
+    </div>
+
+    <div class="checkbox-group">
+      <input type="checkbox" id="recurring" checked>
+      <label for="recurring">הוסף תזכורת לכל שנה (ממיר את התאריך העברי ללועזי)</label>
+    </div>
+
+    <div class="years-config show" id="yearsConfig">
+      <div class="form-group" style="margin-bottom:0">
+        <label for="numYears">כמה שנים קדימה?</label>
+        <select id="numYears">
+          <option value="3">3 שנים</option>
+          <option value="5" selected>5 שנים</option>
+          <option value="10">10 שנים</option>
+          <option value="15">15 שנים</option>
+          <option value="20">20 שנים</option>
+        </select>
+        <p class="info-text">ייווצר אירוע נפרד לכל שנה עם התאריך הלועזי המדויק</p>
+      </div>
+    </div>
+
+    <div class="error-msg" id="errorMsg"></div>
+
+    <button class="btn btn-primary" id="convertBtn" onclick="convert()">
+      🔄 המר והצג תאריכים
+    </button>
+  </div>
+
+  <div class="loader" id="loader">
+    <div class="spinner"></div>
+    <p>ממיר תאריכים...</p>
+  </div>
+
+  <div class="card" id="results">
+    <h2>✨ התאריכים הלועזיים</h2>
+    <div id="resultsList"></div>
+    <div class="add-all-section" id="addAllSection">
+      <button class="btn btn-google" onclick="addAllToCalendar()">
+        <img src="https://www.gstatic.com/images/branding/product/1x/calendar_2020q4_48dp.png" alt="Google Calendar">
+        הוסף הכל ל-Google Calendar
+      </button>
+    </div>
+  </div>
+
+  <div class="success-toast" id="toast">✅ נפתח ב-Google Calendar!</div>
+
+  <footer>
+    <p>המרת תאריכים באמצעות <a href="https://www.hebcal.com" target="_blank">Hebcal API</a> 🕎</p>
+  </footer>
+
+<script>
+  const HEBREW_MONTHS = [
+    { name: 'Nisan', he: 'ניסן' },
+    { name: 'Iyyar', he: 'אייר' },
+    { name: 'Sivan', he: 'סיון' },
+    { name: 'Tamuz', he: 'תמוז' },
+    { name: 'Av', he: 'אב' },
+    { name: 'Elul', he: 'אלול' },
+    { name: 'Tishrei', he: 'תשרי' },
+    { name: 'Cheshvan', he: 'חשוון' },
+    { name: 'Kislev', he: 'כסלו' },
+    { name: 'Tevet', he: 'טבת' },
+    { name: 'Shvat', he: "שבט" },
+    { name: 'Adar', he: 'אדר' },
+    { name: 'Adar1', he: "אדר א'" },
+    { name: 'Adar2', he: "אדר ב'" },
+  ];
+
+  const daySelect = document.getElementById('hebrewDay');
+  const monthSelect = document.getElementById('hebrewMonth');
+  const recurringCheckbox = document.getElementById('recurring');
+  const yearsConfig = document.getElementById('yearsConfig');
+
+  // Populate days 1-30
+  for (let i = 1; i <= 30; i++) {
+    const opt = document.createElement('option');
+    opt.value = i;
+    opt.textContent = gematriya(i);
+    daySelect.appendChild(opt);
+  }
+
+  // Populate months
+  HEBREW_MONTHS.forEach(m => {
+    const opt = document.createElement('option');
+    opt.value = m.name;
+    opt.textContent = m.he;
+    monthSelect.appendChild(opt);
+  });
+
+  recurringCheckbox.addEventListener('change', () => {
+    yearsConfig.classList.toggle('show', recurringCheckbox.checked);
+  });
+
+  // Simple Hebrew numerals
+  function gematriya(num) {
+    const ones = ['', 'א', 'ב', 'ג', 'ד', 'ה', 'ו', 'ז', 'ח', 'ט'];
+    const tens = ['', 'י', 'כ', 'ל'];
+    if (num === 15) return 'ט״ו';
+    if (num === 16) return 'ט״ז';
+    const t = Math.floor(num / 10);
+    const o = num % 10;
+    const str = (tens[t] || '') + (ones[o] || '');
+    if (str.length > 1) return str.slice(0, -1) + '״' + str.slice(-1);
+    return str + '׳';
+  }
+
+  function getCurrentHebrewYear() {
+    // Approximate: Gregorian year + 3760 (adjust around Tishrei)
+    const now = new Date();
+    const gYear = now.getFullYear();
+    const month = now.getMonth(); // 0-based
+    // Hebrew new year is around September
+    return gYear + 3760 + (month >= 8 ? 1 : 0);
+  }
+
+  let convertedDates = [];
+
+  async function convert() {
+    const name = document.getElementById('friendName').value.trim();
+    const day = daySelect.value;
+    const month = monthSelect.value;
+    const isRecurring = recurringCheckbox.checked;
+    const numYears = parseInt(document.getElementById('numYears').value);
+
+    if (!name) {
+      showError('נא להכניס שם');
+      return;
+    }
+
+    const btn = document.getElementById('convertBtn');
+    const loader = document.getElementById('loader');
+    const results = document.getElementById('results');
+    const errorMsg = document.getElementById('errorMsg');
+
+    btn.disabled = true;
+    loader.classList.add('show');
+    results.classList.remove('show');
+    errorMsg.classList.remove('show');
+    convertedDates = [];
+
+    const currentHY = getCurrentHebrewYear();
+    const yearsToFetch = isRecurring ? numYears : 1;
+
+    try {
+      const promises = [];
+      for (let i = 0; i < yearsToFetch; i++) {
+        const hy = currentHY + i;
+        const url = `https://www.hebcal.com/converter?cfg=json&hy=${hy}&hm=${month}&hd=${day}&g2h=0`;
+        promises.push(
+          fetch(url).then(r => {
+            if (!r.ok) throw new Error(`שגיאה בהמרה לשנה ${hy}`);
+            return r.json();
+          }).then(data => {
+            if (data.error) throw new Error(data.error);
+            return {
+              hebrewYear: hy,
+              hebrewDate: data.hebrew,
+              gregorianDate: `${data.gy}-${String(data.gm).padStart(2,'0')}-${String(data.gd).padStart(2,'0')}`,
+              displayDate: formatDate(data.gy, data.gm, data.gd),
+              gy: data.gy, gm: data.gm, gd: data.gd
+            };
+          })
+        );
+      }
+
+      const results_data = await Promise.all(promises);
+      convertedDates = results_data.sort((a, b) => a.hebrewYear - b.hebrewYear);
+
+      renderResults(name);
+    } catch (err) {
+      showError(err.message || 'שגיאה בהמרה, נסו שוב');
+    } finally {
+      btn.disabled = false;
+      loader.classList.remove('show');
+    }
+  }
+
+  function formatDate(y, m, d) {
+    const months = ['ינואר','פברואר','מרץ','אפריל','מאי','יוני','יולי','אוגוסט','ספטמבר','אוקטובר','נובמבר','דצמבר'];
+    return `${d} ${months[m-1]} ${y}`;
+  }
+
+  function renderResults(name) {
+    const list = document.getElementById('resultsList');
+    const results = document.getElementById('results');
+    const addAll = document.getElementById('addAllSection');
+
+    list.innerHTML = '';
+
+    convertedDates.forEach((d, i) => {
+      const div = document.createElement('div');
+      div.className = 'result-item';
+      div.innerHTML = `
+        <div>
+          <div class="result-year">${d.hebrewDate}</div>
+          <div class="result-date">${d.displayDate}</div>
+        </div>
+        <div class="result-actions">
+          <button class="btn-small" onclick="addToCalendar(${i})">📅 הוסף</button>
+        </div>
+      `;
+      list.appendChild(div);
+    });
+
+    addAll.style.display = convertedDates.length > 1 ? 'block' : 'none';
+    results.classList.add('show');
+    results.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+  }
+
+  function buildCalendarUrl(date, name) {
+    const title = `🎂 יום הולדת ${name} (${date.hebrewDate})`;
+    const dateStr = `${date.gy}${String(date.gm).padStart(2,'0')}${String(date.gd).padStart(2,'0')}`;
+    // Next day for all-day event
+    const nextDay = new Date(date.gy, date.gm - 1, date.gd + 1);
+    const endStr = `${nextDay.getFullYear()}${String(nextDay.getMonth()+1).padStart(2,'0')}${String(nextDay.getDate()).padStart(2,'0')}`;
+
+    const details = `יום הולדת עברי: ${date.hebrewDate}\nתאריך לועזי: ${date.displayDate}`;
+
+    const params = new URLSearchParams({
+      action: 'TEMPLATE',
+      text: title,
+      dates: `${dateStr}/${endStr}`,
+      details: details,
+    });
+
+    // Add reminder (1 day before + morning of)
+    // crm = custom reminders: popup 1440 min (1 day) + 540 min (9am)
+    // Unfortunately Google Calendar URL doesn't support reminders directly
+    // But we set it as all-day event which uses default reminders
+
+    return `https://calendar.google.com/calendar/render?${params.toString()}`;
+  }
+
+  function addToCalendar(index) {
+    const name = document.getElementById('friendName').value.trim();
+    const url = buildCalendarUrl(convertedDates[index], name);
+    window.open(url, '_blank');
+    showToast();
+  }
+
+  function addAllToCalendar() {
+    const name = document.getElementById('friendName').value.trim();
+    // Open each in a new tab with slight delay to avoid popup blocking
+    convertedDates.forEach((d, i) => {
+      setTimeout(() => {
+        const url = buildCalendarUrl(d, name);
+        window.open(url, '_blank');
+      }, i * 600);
+    });
+    showToast();
+  }
+
+  function showError(msg) {
+    const el = document.getElementById('errorMsg');
+    el.textContent = msg;
+    el.classList.add('show');
+    setTimeout(() => el.classList.remove('show'), 4000);
+  }
+
+  function showToast() {
+    const toast = document.getElementById('toast');
+    toast.classList.add('show');
+    setTimeout(() => toast.classList.remove('show'), 2500);
+  }
+</script>
+
+</body>
+</html>
