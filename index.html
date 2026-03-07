@@ -6,8 +6,7 @@
   <title>Moedli - מועדלי | תזכורות לתאריכים עבריים</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Heebo:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-  <script src="https://accounts.google.com/gsi/client" async defer></script>
-  <script src="https://apis.google.com/js/api.js" async defer></script>
+
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
 
@@ -345,35 +344,6 @@
       font-weight: 400;
     }
 
-    .progress-bar {
-      width: 100%;
-      height: 6px;
-      background: var(--border);
-      border-radius: 3px;
-      margin: 0.8rem 0;
-      overflow: hidden;
-      display: none;
-    }
-
-    .progress-bar.show { display: block; }
-
-    .progress-bar-fill {
-      height: 100%;
-      background: var(--primary);
-      border-radius: 3px;
-      transition: width 0.3s;
-      width: 0%;
-    }
-
-    .progress-text {
-      font-size: 0.85rem;
-      color: var(--text-light);
-      text-align: center;
-      display: none;
-    }
-
-    .progress-text.show { display: block; }
-
     footer {
       text-align: center;
       padding: 2rem 1rem;
@@ -462,18 +432,10 @@
     <h2>✨ התאריכים הלועזיים</h2>
     <div id="resultsList"></div>
     <div class="add-all-section" id="addAllSection">
-      <button class="btn btn-primary" onclick="addAllViaAPI()" id="addAllBtn">
-        📅 הוסף את כולם ל-Google Calendar
+      <button class="btn btn-google" onclick="addAllToCalendar()">
+        💾 הורד קובץ לכל האירועים (ICS)
       </button>
-      <div class="progress-bar" id="progressBar">
-        <div class="progress-bar-fill" id="progressFill"></div>
-      </div>
-      <p class="progress-text" id="progressText"></p>
-      <div style="margin-top:0.8rem; text-align:center;">
-        <button class="btn btn-google" onclick="addAllToCalendar()" style="font-size:0.9rem;">
-          💾 או הורד קובץ ICS לייבוא ידני
-        </button>
-      </div>
+      <p class="info-text" style="margin-top:0.6rem; text-align:center;">הורד את הקובץ ואז <a href="https://calendar.google.com/calendar/r/settings/export" target="_blank">ייבא ל-Google Calendar</a></p>
     </div>
   </div>
 
@@ -484,141 +446,8 @@
   </footer>
 
 <script>
-  // === CONFIG ===
-  const CLIENT_ID = '367160734504-v91bfg78kf2ec557bpkn0e7vicdgfjer.apps.googleusercontent.com';
-  const SCOPES = 'https://www.googleapis.com/auth/calendar.events';
-
   const EVENT_EMOJIS = { birthday: '🎂', memorial: '🕯️', other: '📌' };
   const EVENT_LABELS = { birthday: 'יום הולדת', memorial: 'אזכרה', other: 'תאריך' };
-
-  // === GOOGLE AUTH ===
-  let tokenClient;
-  let accessToken = null;
-
-  function initGoogleAuth() {
-    tokenClient = google.accounts.oauth2.initTokenClient({
-      client_id: CLIENT_ID,
-      scope: SCOPES,
-      callback: (response) => {
-        if (response.error) {
-          showError('שגיאה בהתחברות לגוגל');
-          return;
-        }
-        accessToken = response.access_token;
-        // If we were waiting to add all, do it now
-        if (pendingAddAll) {
-          pendingAddAll = false;
-          doAddAllViaAPI();
-        }
-      },
-    });
-  }
-
-  // Wait for GIS library to load
-  window.addEventListener('load', () => {
-    // GIS loads async, wait for it
-    const checkGIS = setInterval(() => {
-      if (typeof google !== 'undefined' && google.accounts) {
-        clearInterval(checkGIS);
-        initGoogleAuth();
-      }
-    }, 100);
-  });
-
-  let pendingAddAll = false;
-
-  async function addAllViaAPI() {
-    if (!accessToken) {
-      // Request token first
-      pendingAddAll = true;
-      tokenClient.requestAccessToken();
-      return;
-    }
-    doAddAllViaAPI();
-  }
-
-  async function doAddAllViaAPI() {
-    const name = document.getElementById('friendName').value.trim();
-    const eventType = document.getElementById('eventType').value;
-    const emoji = EVENT_EMOJIS[eventType];
-    const label = EVENT_LABELS[eventType];
-    const btn = document.getElementById('addAllBtn');
-    const progressBar = document.getElementById('progressBar');
-    const progressFill = document.getElementById('progressFill');
-    const progressText = document.getElementById('progressText');
-
-    btn.disabled = true;
-    progressBar.classList.add('show');
-    progressText.classList.add('show');
-    progressFill.style.width = '0%';
-
-    let success = 0;
-    let failed = 0;
-
-    for (let i = 0; i < convertedDates.length; i++) {
-      const d = convertedDates[i];
-      const progress = Math.round(((i + 1) / convertedDates.length) * 100);
-      progressFill.style.width = progress + '%';
-      progressText.textContent = `מוסיף ${i + 1} מתוך ${convertedDates.length}...`;
-
-      const event = {
-        summary: `${emoji} ${label} ${name} (${d.hebrewDate})`,
-        description: `${label} עברי: ${d.hebrewDate}\nתאריך לועזי: ${d.displayDate}\n\nנוצר ע"י מועדלי - Moedli`,
-        start: { date: d.gregorianDate },
-        end: {
-          date: (() => {
-            const next = new Date(d.gy, d.gm - 1, d.gd + 1);
-            return `${next.getFullYear()}-${String(next.getMonth()+1).padStart(2,'0')}-${String(next.getDate()).padStart(2,'0')}`;
-          })()
-        },
-        reminders: {
-          useDefault: false,
-          overrides: [
-            { method: 'popup', minutes: 1440 },
-            { method: 'popup', minutes: 540 },
-          ]
-        },
-        transparency: 'transparent',
-      };
-
-      try {
-        const res = await fetch('https://www.googleapis.com/calendar/v3/calendars/primary/events', {
-          method: 'POST',
-          headers: {
-            'Authorization': `Bearer ${accessToken}`,
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify(event),
-        });
-
-        if (res.status === 401) {
-          // Token expired, re-auth
-          accessToken = null;
-          pendingAddAll = true;
-          tokenClient.requestAccessToken();
-          btn.disabled = false;
-          progressBar.classList.remove('show');
-          progressText.classList.remove('show');
-          return;
-        }
-
-        if (!res.ok) throw new Error('API error');
-        success++;
-      } catch (err) {
-        failed++;
-      }
-    }
-
-    btn.disabled = false;
-    progressBar.classList.remove('show');
-    progressText.classList.remove('show');
-
-    if (failed === 0) {
-      showToast(`✅ נוספו ${success} אירועים ל-Google Calendar!`);
-    } else {
-      showToast(`⚠️ נוספו ${success} אירועים, ${failed} נכשלו`);
-    }
-  }
 
   // === HEBREW MONTHS ===
   const HEBREW_MONTHS = [
